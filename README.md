@@ -90,3 +90,15 @@ Browser clients use an `HttpOnly`, `SameSite=Strict` cookie so JavaScript cannot
 Rather than trusting a self-contained JWT until expiry, each opaque token is backed by a server-side session record. MongoDB stores only its SHA-256 digest, and the record expires after 24 hours. Logout deletes that record and clears the cookie, so the same token is rejected immediately whether it came from a cookie or bearer header. This provides reliable server-side revocation and avoids storing reusable tokens in the database, at the cost of a session-store lookup on each authenticated request and dependence on database availability. A localStorage token would be simpler for a browser SPA, but a successful XSS could read and exfiltrate it; this design accepts the lookup cost to reduce that exposure and make logout genuinely invalidate sessions.
 
 Configure `.env` including the librarian variables, run `npm install`, `npm run seed`, then `npm start`. The Postman collection includes registration, login, profile, logout, and librarian-protected book mutations. `npm test` covers anonymous `401`, patron `403`, librarian success, bcrypt password hashing, caller-only profile data, and session revocation.
+
+## Library Catalog Frontend
+
+The patron-facing React app lives in [`client/`](client/). It uses Vite, React Router, and the existing Express API. From the repository root, start the API with `npm start` after configuring `.env` and seeding data. In a second terminal, run `cd client`, `npm install`, then `npm run dev`; open the local URL printed by Vite. The Vite development proxy forwards `/books`, `/genres`, and `/api` to `http://127.0.0.1:3000`, so no browser CORS configuration is needed. For a production deployment, serve the built `client/dist/` assets behind the API or set the same-origin API reverse proxy.
+
+The catalog uses server-side filtering through `GET /books?genre=&search=&page=&limit=` rather than downloading the full collection. This keeps search, genre, and pagination combinable in one request and limits data transferred to the browser. Search waits 400 ms after typing before changing the query; filters stay in the URL, and the responsive grid reflows from two cards on small screens to four on wide screens. Catalog and detail views each render visible loading, error, and empty/not-found states. Cover images fall back to a local illustration if remote artwork is unavailable. Detail pages use `/book/:id` in the client because `/books/:id` is reserved for the proxied API route.
+
+### Frontend Demo
+
+The recorded walkthrough is committed at [`client/public/demo.gif`](client/public/demo.gif). It demonstrates browsing the catalog, narrowing by genre, searching, and opening a book detail page.
+
+![Catalog demo: browse, filter, search, and open a book](client/public/demo.gif)
